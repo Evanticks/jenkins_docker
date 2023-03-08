@@ -1,46 +1,73 @@
 pipeline {
     environment {
-        IMAGEN = "evanticks/pruebajenkins"
-        USUARIO = 'USER_DOCKERHUB'
+        IMAGEN = "evanticks/django_tutorial"
+        LOGIN = 'USER_DOCKERHUB'
     }
-    agent any
+    agent none
     stages {
-        stage('Clone') {
-            steps {
-                git branch: "main", url: 'https://github.com/josedom24/jenkins_docker.git'
-            }
-        }
-        stage('Build') {
-            steps {
-                script {
-                    newApp = docker.build "$IMAGEN:$BUILD_NUMBER"
+        stage("Desarrollo") {
+            agent {
+                docker { image "python:3"
+                args '-u root:root'
                 }
             }
-        }
+            stages {
+                stage('Clone') {
+                    steps {
+                        git branch:'main',url:'https://github.com/Evanticks/jenkins-django.git'
+                    }
+                }
+                stage('Install') {
+                    steps {
+                        sh 'pip install -r requirements.txt'
+                    }
+                }
+                stage('Test')
+                {
+                    steps {
+                        sh 'python3 manage.py test'
+                    }
+                }
 
-        stage('Test') {
-            steps {
-                script {
-                    docker.image("$IMAGEN:$BUILD_NUMBER").inside('-u root') {
-                           sh 'apache2ctl -v'
+            }
+        }
+        stage("Construccion") {
+            agent any
+            stages {
+                stage('CloneAnfitrion') {
+                    steps {
+                        git branch:'main',url:'https://github.com/Evanticks/docker-django.git'
+                    }
+                }
+                stage('BuildImage') {
+                    steps {
+                        script {
+                            newApp = docker.build "$IMAGEN:latest"
                         }
                     }
-            }
-        }
-        
-        stage('Deploy') {
-            steps {
-                script {
-                    docker.withRegistry( '', USUARIO ) {
-                        newApp.push()
+                }
+                stage('UploadImage') {
+                    steps {
+                        script {
+                            docker.withRegistry( '', LOGIN ) {
+                                newApp.push()
+                            }
+                        }
+                    }
+                }
+                stage('RemoveImage') {
+                    steps {
+                        sh "docker rmi $IMAGEN:latest"
                     }
                 }
             }
-        }
-        stage('Clean Up') {
-            steps {
-                sh "docker rmi $IMAGEN:$BUILD_NUMBER"
-                }
+        }           
+    }
+    post {
+        always {
+            mail to: 'antonio@gonzalonazareno.org',
+            subject: "Status of pipeline: ${currentBuild.fullDisplayName}",
+            body: "${env.BUILD_URL} has result ${currentBuild.result}"
         }
     }
 }

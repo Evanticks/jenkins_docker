@@ -21,7 +21,7 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    docker.image("$IMAGEN:$BUILD_NUMBER").inside('-u root') {
+                    docker.image("jenkinsprueba:v1").inside('-u root') {
                            sh 'apache2ctl -v'
                         }
                     }
@@ -39,7 +39,7 @@ pipeline {
         }
         stage('Clean Up') {
             steps {
-                sh "docker rmi $IMAGEN:$BUILD_NUMBER"
+                sh "docker rmi jenkinsprueba:v1"
                 }
         }
     }

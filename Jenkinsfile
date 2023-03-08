@@ -63,6 +63,7 @@ pipeline {
                 stage ('SSH') {
                     steps{
                         sshagent(credentials : ['SSH_ROOT']) {
+                            sh 'ssh -o StrictHostKeyChecking=no shinji@evangelion.entrebytes.org docker rmi -f $IMAGENAME:latest'
                             sh 'ssh -o StrictHostKeyChecking=no shinji@evangelion.entrebytes.org wget https://raw.githubusercontent.com/Evanticks/docker-django/main/docker-compose.yaml -O docker-compose.yaml'
                             sh 'ssh -o StrictHostKeyChecking=no shinji@evangelion.entrebytes.org docker-compose up -d --force-recreate'
                         }
